@@ -1,0 +1,51 @@
+### Naive SFT on MIMIC-III ICD-9 top-50 codes (Qwen2.5-1.5B base).
+### Produces the SFT base used by EasyR1 GRPO Stage 2.
+### Output goes to ${SFT_MODEL_PATH:-${REPO_ROOT}/models/qwen2.5-1.5b-icd-sft-top50}.
+
+### model
+# To switch to a different base, override here.
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 8
+lora_target: all
+deepspeed: examples/deepspeed/ds_z3_config.json
+
+### dataset
+dataset: icd_naive_sft_mimic3_top50_train
+eval_dataset: icd_naive_sft_mimic3_top50_val
+template: qwen3_nothink   # use the qwen3 nothink template + enable_thinking=None patch
+cutoff_len: 8192
+max_samples: 1000000
+preprocessing_num_workers: 16
+dataloader_num_workers: 8
+
+### output
+output_dir: saves/qwen2.5-1.5b/lora/icd_naive_sft_mimic3_top50
+logging_steps: 10
+save_steps: 200
+plot_loss: true
+overwrite_output_dir: false
+save_only_model: false
+report_to: wandb
+run_name: qwen2.5-1.5b-icd-naive-sft-mimic3-top50
+
+### train
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+bf16: true
+ddp_timeout: 180000000
+resume_from_checkpoint: null
+
+### eval
+per_device_eval_batch_size: 4
+eval_strategy: steps
+eval_steps: 200

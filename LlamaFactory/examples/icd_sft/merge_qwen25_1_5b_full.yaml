@@ -1,0 +1,14 @@
+### Merge the Qwen2.5-1.5B MIMIC-III full-code naive SFT LoRA adapter
+### into a full model. Used by EasyR1 full-code GRPO experiments.
+
+### model
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+adapter_name_or_path: saves/qwen2.5-1.5b/lora/icd_naive_sft_mimic3_full
+template: qwen
+trust_remote_code: true
+
+### export
+export_dir: outputs/qwen2.5-1.5b/icd_naive_sft_mimic3_full
+export_size: 5
+export_device: cpu
+export_legacy_format: false

@@ -1,0 +1,39 @@
+# LLM4ICD — minimal top-level dependencies.
+#
+# This file installs the two sub-frameworks in editable mode so our
+# `verl/utils/icd_descriptions.py` and
+# `LlamaFactory/src/llamafactory/data/template.py` patches are
+# picked up. Pip resolves the rest of the transitive deps from each
+# framework's own pyproject.toml.
+#
+# Critical libraries are also pinned to versions known to be ABI-compatible
+# with each other on CUDA 12.x + H100 / A100 (vLLM 0.8.2 in particular
+# requires torch 2.6.x and flash-attn 2.7.x).
+#
+# For byte-identical reproduction of the developer environment (309
+# packages, every transitive dep pinned), use `requirements.lock.txt` instead:
+#   pip install -r requirements.lock.txt
+
+# ── Two sub-frameworks (installed in editable mode) ──────────────────
+-e ./LlamaFactory
+-e ./EasyR1
+
+# ── Critical version anchors (vLLM ABI chain) ────────────────────────
+torch==2.6.0
+vllm==0.8.2
+flash-attn==2.7.3
+transformers>=4.56,<5.0
+peft>=0.18,<0.19
+ray>=2.53,<2.60
+deepspeed>=0.16,<0.17
+trl>=0.24
+numpy<2.0
+
+# ── Data / IO (directly imported by tasks/*.py) ──────────────────────
+pandas>=2.0
+pyarrow>=15
+datasets>=4.0,<5.0
+jinja2
+
+# ── Experiment tracking (optional but referenced in the training scripts) ─
+wandb>=0.26

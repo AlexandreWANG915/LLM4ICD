@@ -1,0 +1,64 @@
+# =====================================================================
+# LLM4ICD .gitignore
+# =====================================================================
+
+# ── ML artifacts ────────────────────────────────────────────────────
+checkpoints/
+**/checkpoints/
+*.pt
+*.safetensors
+wandb/
+**/wandb/
+**/logs/
+**/figures/
+nohup.out
+*.out
+
+# ── PHI / dataset (do NOT commit MIMIC-III/IV derived data) ─────────
+# Anchored to a data/ parent (**/data/...) so they catch MIMIC-derived data
+# dirs under any sub-framework (LlamaFactory/data/, EasyR1/data/), not just the
+# repo-root data/ — without sweeping in the examples/icd_sft/ config dir.
+*.parquet
+*.feather
+**/data/icd_grpo_*/
+**/data/icd_sft_*/
+**/data/icd_naive_sft_*/
+**/data/icd_sft/
+**/data/icd_grpo/
+# Whitelisted: CMS public-domain ICD-9 description dictionary
+!data/icd9_descriptions.json
+
+# ── SFT base model directories (downloaded / produced separately) ───
+# Anchored to repo root so EasyR1/verl/models/ source (monkey patches,
+# transformers wrappers) isn't accidentally excluded.
+/models/
+
+# ── Python ──────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+*.egg
+
+# ── Secrets ─────────────────────────────────────────────────────────
+.wandb_env
+.env
+*.key
+*.pem
+hf_token
+.huggingface
+
+# ── IDE / OS ────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# ── Local working copies of external repos (re-clone as needed) ─────
+LlamaFactory/.git/
+EasyR1/.git/

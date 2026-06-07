@@ -1,0 +1,15 @@
+### Merge the Qwen3-4B MIMIC-III top-50 naive SFT LoRA adapter into a
+### full model. Used by EasyR1 GRPO experiments that probe whether a larger
+### base picks up the in-prompt feedback / hint signal more reliably.
+
+### model
+model_name_or_path: Qwen/Qwen3-4B-Instruct-2507
+adapter_name_or_path: saves/qwen3-4b/lora/icd_naive_sft_mimic3_top50/checkpoint-1800
+template: qwen3_nothink
+trust_remote_code: true
+
+### export
+export_dir: outputs/qwen3-4b/icd_naive_sft_mimic3_top50
+export_size: 5
+export_device: cpu
+export_legacy_format: false

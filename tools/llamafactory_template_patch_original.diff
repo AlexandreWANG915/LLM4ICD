@@ -1,0 +1,95 @@
+diff --git a/src/llamafactory/data/template.py b/src/llamafactory/data/template.py
+index b91f9c1d..a4bd2fbc 100644
+--- a/src/llamafactory/data/template.py
++++ b/src/llamafactory/data/template.py
+@@ -417,11 +417,29 @@ class ReasoningTemplate(Template):
+         for i in range(1, len(messages) - 2, 2):
+             messages[i]["content"] = self.remove_thought(messages[i]["content"])
+ 
+-        if self.enable_thinking is False:  # remove all cot
++        # For enable_thinking=None: extract think content, keep tokens but mask loss
++        extracted_think = None
++        if self.enable_thinking is None:
++            stripped_start = re.escape(self.thought_words[0].strip())
++            stripped_end = re.escape(self.thought_words[1].strip())
++            pattern = re.compile(f"({stripped_start}.*?{stripped_end})", re.DOTALL)
++            match = pattern.search(messages[-1]["content"])
++            if match:
++                extracted_think = match.group(1) + "\n"
++            # Remove think using stripped pattern (handles varying whitespace)
++            messages[-1]["content"] = re.sub(
++                f"{stripped_start}.*?{stripped_end}\n*", "", messages[-1]["content"], flags=re.DOTALL
++            ).lstrip("\n")
++        elif self.enable_thinking is False:  # remove all cot
+             messages[-1]["content"] = self.remove_thought(messages[-1]["content"])
+ 
+         prompt_ids, response_ids = super().encode_oneturn(tokenizer, messages, system, tools)
+-        if (
++
++        if extracted_think is not None:
++            # Think tokens go to prompt side (no loss computation)
++            think_ids = tokenizer.encode(extracted_think, add_special_tokens=False)
++            prompt_ids += think_ids
++        elif (
+             self.thought_words[0].strip() not in messages[-1]["content"]
+             and self.thought_words[1].strip() not in messages[-1]["content"]
+         ):  # add empty cot
+@@ -441,13 +459,32 @@ class ReasoningTemplate(Template):
+         tools: Optional[str] = None,
+     ) -> list[tuple[list[int], list[int]]]:
+         messages = deepcopy(messages)
+-        if self.enable_thinking is False:  # remove all cot
++
++        # For enable_thinking=None: extract think content from each assistant message
++        extracted_thinks: dict[int, str] = {}
++        if self.enable_thinking is None:
++            stripped_start = re.escape(self.thought_words[0].strip())
++            stripped_end = re.escape(self.thought_words[1].strip())
++            pattern = re.compile(f"({stripped_start}.*?{stripped_end})", re.DOTALL)
++            for i in range(1, len(messages), 2):
++                match = pattern.search(messages[i]["content"])
++                if match:
++                    extracted_thinks[i] = match.group(1) + "\n"
++                # Remove think using stripped pattern (handles varying whitespace)
++                messages[i]["content"] = re.sub(
++                    f"{stripped_start}.*?{stripped_end}\n*", "", messages[i]["content"], flags=re.DOTALL
++                ).lstrip("\n")
++        elif self.enable_thinking is False:  # remove all cot
+             for i in range(1, len(messages), 2):
+                 messages[i]["content"] = self.remove_thought(messages[i]["content"])
+ 
+         encoded_messages = self._encode(tokenizer, messages, system, tools)
+         for i in range(0, len(messages), 2):
+-            if (
++            if i + 1 in extracted_thinks:
++                # Think tokens go to prompt side (no loss computation)
++                think_ids = tokenizer.encode(extracted_thinks[i + 1], add_special_tokens=False)
++                encoded_messages[i] += think_ids
++            elif (
+                 self.thought_words[0].strip() not in messages[i + 1]["content"]
+                 and self.thought_words[1].strip() not in messages[i + 1]["content"]
+             ):  # add empty cot
+@@ -981,6 +1018,23 @@ register_template(
+ )
+ 
+ 
++# For gemma3_text models (text-only, e.g., medgemma-27b-text-it)
++register_template(
++    name="gemma3_text",
++    format_user=StringFormatter(slots=["<start_of_turn>user\n{{content}}<end_of_turn>\n<start_of_turn>model\n"]),
++    format_assistant=StringFormatter(slots=["{{content}}<end_of_turn>\n"]),
++    format_system=StringFormatter(slots=["{{content}}\n\n"]),
++    format_observation=StringFormatter(
++        slots=["<start_of_turn>tool\n{{content}}<end_of_turn>\n<start_of_turn>model\n"]
++    ),
++    format_prefix=EmptyFormatter(slots=[{"bos_token"}]),
++    stop_words=["<end_of_turn>"],
++    replace_eos=True,
++    # mm_plugin=get_mm_plugin("gemma3", image_token="<image_soft_token>"),  # Removed for text-only models
++    template_class=Llama2Template,
++)
++
++
+ register_template(
+     name="gemma3n",
+     format_user=StringFormatter(slots=["<start_of_turn>user\n{{content}}<end_of_turn>\n<start_of_turn>model\n"]),
